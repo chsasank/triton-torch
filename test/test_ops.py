@@ -26,18 +26,17 @@ def test_add_2d():
 def test_add_autograd():
     x_torch = torch.rand(123, 102, device="cuda", requires_grad=True)
     y_torch = torch.rand(123, 102, device="cuda", requires_grad=True)
-    output_torch = (x_torch + y_torch).sum()
+    output_torch = (x_torch + y_torch).sum() ** 2
 
-    x_triton = x_torch.clone()
-    y_trion = y_torch.clone()
-    output_triton = add(x_triton, y_trion).sum()
+    x_triton = x_torch.clone().detach().requires_grad_(True)
+    y_trion = y_torch.clone().detach().requires_grad_(True)
+    output_triton = (x_triton + y_trion).sum() ** 2
+    assert torch.allclose(output_torch, output_triton)
 
-    assert output_torch == output_triton
+    # test backwards
     output_torch.backward()
-    print(x_torch.grad)
-
     output_triton.backward()
-    print(x_triton.grad)
+    assert torch.allclose(x_triton.grad, x_torch.grad)
 
 
 def test_mul():
@@ -68,5 +67,5 @@ def test_softmax():
     assert y_triton.shape == y_torch.shape
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_add_autograd()

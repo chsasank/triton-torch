@@ -1,15 +1,30 @@
 import torch
 import triton
 from .kernels import add_kernel, mul_kernel, softmax_kernel
+from torch.autograd import Function
 
 
-def add(x: torch.Tensor, y: torch.Tensor):
-    output = torch.empty_like(x)
-    assert x.is_cuda and y.is_cuda and output.is_cuda
-    n_elements = output.numel()
-    grid = lambda meta: (triton.cdiv(n_elements, meta["BLOCK_SIZE"]),)
-    add_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=1024)
-    return output
+class Add(Function):
+    @staticmethod
+    def forward(ctx, x, y):
+        output = torch.empty_like(x)
+        assert x.is_cuda and y.is_cuda and output.is_cuda
+        n_elements = output.numel()
+        grid = lambda meta: (triton.cdiv(n_elements, meta["BLOCK_SIZE"]),)
+        add_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=1024)
+        return output
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_x = grad_y = None
+        if ctx.needs_input_grad[0]:
+            grad_x = grad_output.clone()
+        if ctx.needs_input_grad[1]:
+            grad_y = grad_output.clone()
+        return grad_x, grad_y
+
+
+add = Add.apply
 
 
 def mul(x: torch.Tensor, y: torch.Tensor):
