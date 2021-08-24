@@ -20,7 +20,7 @@ def add_kernel(
     x = tl.load(x_ptr + offsets, mask=mask)
     y = tl.load(y_ptr + offsets, mask=mask)
     output = x + y
-    tl.store(output_ptr + offsets, output)
+    tl.store(output_ptr + offsets, output, mask=mask)
 
 
 def _add(x, y):
@@ -50,7 +50,7 @@ def mul_kernel(
     x = tl.load(x_ptr + offsets, mask=mask)
     y = tl.load(y_ptr + offsets, mask=mask)
     output = x * y
-    tl.store(output_ptr + offsets, output)
+    tl.store(output_ptr + offsets, output, mask=mask)
 
 
 def _mul(x, y):
