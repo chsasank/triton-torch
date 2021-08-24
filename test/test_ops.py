@@ -29,14 +29,15 @@ def test_add_autograd():
     output_torch = (x_torch + y_torch).sum() ** 2
 
     x_triton = x_torch.clone().detach().requires_grad_(True)
-    y_trion = y_torch.clone().detach().requires_grad_(True)
-    output_triton = (x_triton + y_trion).sum() ** 2
+    y_triton = y_torch.clone().detach().requires_grad_(True)
+    output_triton = add(x_triton, y_triton).sum() ** 2
     assert torch.allclose(output_torch, output_triton)
 
     # test backwards
     output_torch.backward()
     output_triton.backward()
     assert torch.allclose(x_triton.grad, x_torch.grad)
+    assert torch.allclose(y_triton.grad, y_torch.grad)
 
 
 def test_mul():
@@ -58,6 +59,23 @@ def test_mul_2d():
     assert output_triton.shape == output_torch.shape
 
 
+def test_mul_autograd():
+    x_torch = torch.rand(123, 102, device="cuda", requires_grad=True)
+    y_torch = torch.rand(123, 102, device="cuda", requires_grad=True)
+    output_torch = (x_torch * y_torch).sum()
+
+    x_triton = x_torch.clone().detach().requires_grad_(True)
+    y_triton = y_torch.clone().detach().requires_grad_(True)
+    output_triton = mul(x_triton, y_triton).sum()
+    assert torch.allclose(output_torch, output_triton)
+
+    # test backwards
+    output_torch.backward()
+    output_triton.backward()
+    assert torch.allclose(x_triton.grad, x_torch.grad)
+    assert torch.allclose(y_triton.grad, y_torch.grad)
+
+
 def test_softmax():
     torch.manual_seed(0)
     x = torch.randn(1823, 781, device="cuda")
@@ -68,4 +86,4 @@ def test_softmax():
 
 
 if __name__ == "__main__":
-    test_add_autograd()
+    test_mul_autograd()
