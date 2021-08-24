@@ -1,8 +1,7 @@
-import torch
-import triton
-from triton.language import softmax
-from .kernels import _add, _mul, _softmax
 from torch.autograd import Function, grad
+from triton.language import softmax
+
+from .kernels import _add, _mul, _softmax
 
 
 class Add(Function):
@@ -32,18 +31,17 @@ class Mul(Function):
     @staticmethod
     def backward(ctx, grad_output):
         x, y = ctx.saved_tensors
+        grad_output = grad_output.contiguous()
         grad_x = grad_y = None
         if ctx.needs_input_grad[0]:
             grad_x = _mul(grad_output, y)
-            print('grad_output:', grad_output)
-            print('y:', y)
-            print('_mul(grad_output, y):', grad_x)
         if ctx.needs_input_grad[1]:
             grad_y = _mul(grad_output, x)
         return grad_x, grad_y
 
 
 mul = Mul.apply
+
 
 class Softmax(Function):
     @staticmethod

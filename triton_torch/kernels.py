@@ -1,6 +1,6 @@
+import torch
 import triton
 import triton.language as tl
-import torch
 
 
 @triton.jit
@@ -26,6 +26,7 @@ def add_kernel(
 def _add(x, y):
     output = torch.empty_like(x)
     assert x.is_cuda and y.is_cuda and output.is_cuda
+    assert x.is_contiguous() and y.is_contiguous() and output.is_contiguous()
     n_elements = output.numel()
     grid = lambda meta: (triton.cdiv(n_elements, meta["BLOCK_SIZE"]),)
     add_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=1024)
@@ -55,6 +56,7 @@ def mul_kernel(
 def _mul(x, y):
     output = torch.empty_like(x)
     assert x.is_cuda and y.is_cuda and output.is_cuda
+    assert x.is_contiguous() and y.is_contiguous() and output.is_contiguous()
     n_elements = output.numel()
     grid = lambda meta: (triton.cdiv(n_elements, meta["BLOCK_SIZE"]),)
     mul_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=1024)
@@ -98,6 +100,10 @@ def _softmax(x):
     n_rows, n_cols = x.shape
     BLOCK_SIZE = _next_power_of_2(n_cols)
     y = torch.empty_like(x)
+
+    assert x.is_cuda and y.is_cuda
+    assert x.is_contiguous() and y.is_contiguous()
+
     softmax_kernel[(n_rows,)](
         y,
         x,
